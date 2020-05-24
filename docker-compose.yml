@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  web:
+    image: 'gcr.io/${PROJECT_ID}/protect-your-photo-from-recognition:v1'
+    build: .
+    environment:
+      # See prints from docker console
+      PYTHON_UNBUFFERED: 1
+      # Add for hot-reload
+      FLASK_APP: "app"
+      FLASK_ENV: "development"
+    ports:
+      - "8050:8050"
+    volumes:
+      - .:/protect-your-photo-from-recognition
