@@ -1,12 +1,8 @@
-ARG CODE_VERSION="3.8-slim"
+ARG CODE_VERSION="3.8"
 FROM python:${CODE_VERSION}
 LABEL mantainer="Dmitriy Kisil <email: logart1995@gmail.com>"
 ADD . /protect-your-photo-from-recognition
 WORKDIR /protect-your-photo-from-recognition
-# for opencv
-RUN apt-get update && apt-get install -y \
-  libgtk2.0-dev
-# packages that we need
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 COPY . .
