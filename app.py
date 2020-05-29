@@ -5,11 +5,12 @@ from dash.dependencies import Input, Output
 from flask import Flask
 import os
 import base64
-import cv2
+import io
 import numpy as np
 import flask
 import json
 import tensorflow as tf
+from PIL import Image
 from utils import preprocess, get_imagenet_label, create_adversarial_pattern
 stylesheets = [
     "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css", # Bulma
@@ -93,12 +94,27 @@ def update_original_image(list_of_contents):
     if list_of_contents is None:
         return html.Img(id='image')
     data = list_of_contents[-1].encode("utf8").split(b";base64,")[1]
+    # Using tf, numpy and pillow
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    img = cv2.resize(img, (224, 224))
-    buffer = cv2.imencode('.jpg', img)[1]
+    img = Image.open(io.BytesIO(nparr))
+    img = tf.keras.preprocessing.image.img_to_array(img)
+    image = tf.convert_to_tensor(img, tf.float32)
+    image = preprocess(image)
+    image = tf.squeeze(image)
 
-    encoded_image = base64.b64encode(buffer)
+    image = tf.keras.preprocessing.image.array_to_img(image)
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    img_byte = buffered.getvalue()
+    encoded_image = base64.b64encode(img_byte)
+    # Using numpy and opencv
+    # nparr = np.frombuffer(base64.b64decode(data), np.uint8)
+
+    # img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    # img = cv2.resize(img, (224, 224))
+    # buffer = cv2.imencode('.jpg', img)[1]
+
+    # encoded_image = base64.b64encode(buffer)
 
     return html.Img(id='image', src='data:image/png;base64,{}'.format(
         encoded_image.decode()))
@@ -113,7 +129,7 @@ def update_perturbations(epsilon_value, img_src):
         return
     data = img_src['props']['src'].split(";base64,")[1]
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img = Image.open(io.BytesIO(nparr))
     # machine learning part
     image_raw = np.asarray(img).astype(np.float32)
     image = tf.convert_to_tensor(image_raw, tf.float32)
@@ -132,11 +148,12 @@ def update_perturbations(epsilon_value, img_src):
     perturbations = create_adversarial_pattern(image, label)
 
     image = perturbations[0] * 0.5 + 0.5
-    image_to_save = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
-    image_to_save = image_to_save.numpy()
-    buffer = cv2.imencode('.jpg', image_to_save)[1]
-
-    encoded_image = base64.b64encode(buffer)
+    image = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
+    image = tf.keras.preprocessing.image.array_to_img(image)
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    img_byte = buffered.getvalue()
+    encoded_image = base64.b64encode(img_byte)
 
     return html.Img(id='image', src='data:image/png;base64,{}'.format(
         encoded_image.decode()))
@@ -151,7 +168,7 @@ def update_changed_image(epsilon_value, orig_img_src, perturb_img_src):
         return
     orig_data = orig_img_src['props']['src'].split(";base64,")[1]
     orig_nparr = np.frombuffer(base64.b64decode(orig_data), np.uint8)
-    orig_img = cv2.imdecode(orig_nparr, cv2.IMREAD_COLOR)
+    orig_img = Image.open(io.BytesIO(orig_nparr))
     # machine learning part
     orig_image_raw = np.asarray(orig_img).astype(np.float32)
     orig_image = tf.convert_to_tensor(orig_image_raw, tf.float32)
@@ -180,11 +197,13 @@ def update_changed_image(epsilon_value, orig_img_src, perturb_img_src):
     adv_x = orig_image + epsilon_value * perturb_image
     image = tf.clip_by_value(adv_x, -1, 1)
     image = image[0] * 0.5 + 0.5
-    image_to_save = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
-    image_to_save = image_to_save.numpy()
-    buffer = cv2.imencode('.jpg', image_to_save)[1]
-
-    encoded_image = base64.b64encode(buffer)
+    image = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
+    image = tf.squeeze(image)
+    image = tf.keras.preprocessing.image.array_to_img(image)
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    img_byte = buffered.getvalue()
+    encoded_image = base64.b64encode(img_byte)
 
     return html.Img(id='image', src='data:image/png;base64,{}'.format(
         encoded_image.decode()))
@@ -207,7 +226,7 @@ def update_original_predictions(img_src):
         return
     data = img_src['props']['src'].split(";base64,")[1]
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img = Image.open(io.BytesIO(nparr))
     image_raw = np.asarray(img).astype(np.float32)
     image = tf.convert_to_tensor(image_raw, np.float32)
     image = preprocess(image)
@@ -224,15 +243,13 @@ def update_changed_predictions(img_src):
         return
     data = img_src['props']['src'].split(";base64,")[1]
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    cv2.imwrite("downloadable/example2.jpg", img)
+    img = Image.open(io.BytesIO(nparr))
     image_raw = np.asarray(img).astype(np.float32)
     image = tf.convert_to_tensor(image_raw, np.float32)
 
     image = preprocess(image)
-    image_to_save = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
-    image_to_save = cv2.cvtColor(image_to_save.numpy(), cv2.COLOR_RGB2BGR)
-    cv2.imwrite("downloadable/example3.jpg", image_to_save)
+    image = tf.image.convert_image_dtype(image, tf.uint8)
+
     image_probs = pretrained_model.predict(image)
     _, label, confidence = get_imagenet_label(image_probs)
     return '{} : {:.2f}% Confidence'.format(label, confidence*100)
@@ -247,9 +264,12 @@ def show_download_button(filename, img_src):
         return
     data = img_src['props']['src'].split(";base64,")[1]
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img = Image.open(io.BytesIO(nparr))
     path = f"downloadable/test_{filename[0]}"
-    cv2.imwrite(path, img)
+    root_dir = os.getcwd()
+    if os.path.exists(root_dir + '/downloadable/' + path):
+        os.remove(root_dir + '/downloadable/' + path)
+    img.save(path, "JPEG")
     uri = path
     return [build_download_button(uri)]
 
