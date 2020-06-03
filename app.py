@@ -198,7 +198,7 @@ def update_changed_image(epsilon_value, orig_img_src, perturb_img_src):
     image = tf.clip_by_value(adv_x, -1, 1)
     image = image[0] * 0.5 + 0.5
     image = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
-    image = tf.squeeze(image)
+
     image = tf.keras.preprocessing.image.array_to_img(image)
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
@@ -245,10 +245,9 @@ def update_changed_predictions(img_src):
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
     img = Image.open(io.BytesIO(nparr))
     image_raw = np.asarray(img).astype(np.float32)
-    image = tf.convert_to_tensor(image_raw, np.float32)
+    image = tf.convert_to_tensor(image_raw, tf.float32)
 
     image = preprocess(image)
-    image = tf.image.convert_image_dtype(image, tf.uint8)
 
     image_probs = pretrained_model.predict(image)
     _, label, confidence = get_imagenet_label(image_probs)
