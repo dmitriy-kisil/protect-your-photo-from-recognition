@@ -53,6 +53,7 @@ app.layout = html.Div(
                                   [str(round(i, 3)) for i in np.arange(0.01, 0.11, 0.01)])),
                    value=0.01, included=False
                    ),
+        html.Div(id='shapes', children=[], style={'display': 'none'}),
         html.Div([html.Label('original image', style={'width': '33%', 'display': 'inline-block'}),
                   html.Div(id='show-choosed-epsilon-text', children=[], style={'width': '33%', 'display': 'inline-block'}),
                   html.Label('After FGSM', style={'width': '33%', 'display': 'inline-block'})]),
@@ -86,18 +87,19 @@ def build_download_button(uri):
 
 
 @app.callback(
-    Output(component_id='original-image', component_property='children'),
+    [Output(component_id='original-image', component_property='children'), Output('shapes', 'children')],
     [Input('upload-image', 'contents')]
 )
 def update_original_image(list_of_contents):
 
     if list_of_contents is None:
-        return html.Img(id='image')
+        return [html.Img(id='image'), []]
     data = list_of_contents[-1].encode("utf8").split(b";base64,")[1]
     # Using tf, numpy and pillow
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
     img = Image.open(io.BytesIO(nparr))
     img = tf.keras.preprocessing.image.img_to_array(img)
+    shapes = img.shape
     image = tf.convert_to_tensor(img, tf.float32)
     image = preprocess(image)
     image = tf.squeeze(image)
@@ -116,8 +118,8 @@ def update_original_image(list_of_contents):
 
     # encoded_image = base64.b64encode(buffer)
 
-    return html.Img(id='image', src='data:image/png;base64,{}'.format(
-        encoded_image.decode()))
+    return [html.Img(id='image', src='data:image/png;base64,{}'.format(
+        encoded_image.decode())), shapes]
 
 
 @app.callback(
@@ -256,18 +258,22 @@ def update_changed_predictions(img_src):
 
 @app.callback(
     Output("download-area", "children"),
-    [Input('upload-image', 'filename'), Input('changed-image', 'children')],
+    [Input('upload-image', 'filename'), Input('shapes', 'children'), Input('changed-image', 'children')],
 )
-def show_download_button(filename, img_src):
+def show_download_button(filename, shapes, img_src):
     if not img_src:
         return
     data = img_src['props']['src'].split(";base64,")[1]
     nparr = np.frombuffer(base64.b64decode(data), np.uint8)
     img = Image.open(io.BytesIO(nparr))
+    image_raw = np.asarray(img).astype(np.float32)
+    image = tf.convert_to_tensor(image_raw, tf.float32)
+    img = tf.image.resize(image, shapes[:2]).numpy()
+    img = tf.keras.preprocessing.image.array_to_img(img)
     path = f"downloadable/test_{filename[0]}"
     root_dir = os.getcwd()
-    if os.path.exists(root_dir + '/downloadable/' + path):
-        os.remove(root_dir + '/downloadable/' + path)
+    if os.path.exists(root_dir + "/" + path):
+        os.remove(root_dir + "/" + path)
     img.save(path, "JPEG")
     uri = path
     return [build_download_button(uri)]
