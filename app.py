@@ -163,9 +163,10 @@ def update_perturbations(epsilon_value, img_src):
 
 @app.callback(
     Output(component_id='changed-image', component_property='children'),
-    [Input('epsilon', 'value'), Input('original-image', 'children'), Input('perturbations', 'children')]
+    [Input('epsilon', 'value'),  Input('shapes', 'children'), Input('upload-image', 'filename'),
+     Input('original-image', 'children'), Input('perturbations', 'children')]
 )
-def update_changed_image(epsilon_value, orig_img_src, perturb_img_src):
+def update_changed_image(epsilon_value, shapes, filename, orig_img_src, perturb_img_src):
     if not orig_img_src['props'].get('src'):
         return
     orig_data = orig_img_src['props']['src'].split(";base64,")[1]
@@ -200,7 +201,14 @@ def update_changed_image(epsilon_value, orig_img_src, perturb_img_src):
     image = tf.clip_by_value(adv_x, -1, 1)
     image = image[0] * 0.5 + 0.5
     image = tf.squeeze(tf.image.convert_image_dtype(image, tf.uint8))
-
+    image_for_save = image
+    image_for_save = tf.image.resize(image_for_save, shapes[:2]).numpy()
+    image_for_save = tf.keras.preprocessing.image.array_to_img(image_for_save)
+    path = f"downloadable/test_{filename[0]}"
+    root_dir = os.getcwd()
+    if os.path.exists(root_dir + "/" + path):
+        os.remove(root_dir + "/" + path)
+    image_for_save.save(path, "JPEG")
     image = tf.keras.preprocessing.image.array_to_img(image)
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
@@ -258,23 +266,14 @@ def update_changed_predictions(img_src):
 
 @app.callback(
     Output("download-area", "children"),
-    [Input('upload-image', 'filename'), Input('shapes', 'children'), Input('changed-image', 'children')],
+    [Input('upload-image', 'filename'), Input('changed-image', 'children')],
 )
-def show_download_button(filename, shapes, img_src):
+def show_download_button(filename, img_src):
     if not img_src:
         return
-    data = img_src['props']['src'].split(";base64,")[1]
-    nparr = np.frombuffer(base64.b64decode(data), np.uint8)
-    img = Image.open(io.BytesIO(nparr))
-    image_raw = np.asarray(img).astype(np.float32)
-    image = tf.convert_to_tensor(image_raw, tf.float32)
-    img = tf.image.resize(image, shapes[:2]).numpy()
-    img = tf.keras.preprocessing.image.array_to_img(img)
+
     path = f"downloadable/test_{filename[0]}"
-    root_dir = os.getcwd()
-    if os.path.exists(root_dir + "/" + path):
-        os.remove(root_dir + "/" + path)
-    img.save(path, "JPEG")
+
     uri = path
     return [build_download_button(uri)]
 
