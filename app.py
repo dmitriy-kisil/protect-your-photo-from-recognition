@@ -13,7 +13,7 @@ import tensorflow as tf
 from PIL import Image
 from utils import preprocess, get_imagenet_label, create_adversarial_pattern
 stylesheets = [
-    "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css", # Bulma
+    "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css",  # Bulma
 ]
 
 server = Flask(__name__)
@@ -294,4 +294,4 @@ if __name__ == '__main__':
     with open(imagenet_labels) as json_file:
         data_json = json.load(json_file)
 
-    app.run_server(host="0.0.0.0", port="8050", debug=True)
+    app.run_server(host="0.0.0.0", port=8050, debug=True)

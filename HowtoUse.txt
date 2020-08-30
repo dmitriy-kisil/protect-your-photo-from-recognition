@@ -13,6 +13,9 @@ kubectl set image deployment/hello-web protect-your-photo-from-recognition=gcr.i
 Check containers:
 kubectl get pods
 kubectl get service
+If you remove cluster and want to use kubectl:
+gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project ${PROJECT_ID}
+where cluster-1 name of a new cluster, his zone and project id
 Stop & remove containers:
 docker container stop $(docker container ls -aq)
 docker container rm $(docker container ls -aq)
