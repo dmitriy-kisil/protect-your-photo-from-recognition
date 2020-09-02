@@ -16,6 +16,8 @@ stylesheets = [
     "https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css",  # Bulma
 ]
 
+port = int(os.environ.get("PORT", 5000))
+
 server = Flask(__name__)
 # create app
 app = dash.Dash(
@@ -294,4 +296,4 @@ if __name__ == '__main__':
     with open(imagenet_labels) as json_file:
         data_json = json.load(json_file)
 
-    app.run_server(host="0.0.0.0", port=8050, debug=True)
+    app.run_server(host="0.0.0.0", port=port, debug=True)
