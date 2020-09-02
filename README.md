@@ -6,4 +6,4 @@ change image, check again prediction, download changed photo.
 
 Used in project technologies: Python3, Flask, Dash, Opencv, Tensorflow, Docker.
 
-Code hosted on GCP (available on: http://104.154.160.35/ (if I have money from free credit to pay for it))
+Code hosted on GCP previously and then moved to Heroku (available on: https://protect-photo-from-recognition.herokuapp.com/ (server will sleep after 30 mins of inactivity so be patient))
