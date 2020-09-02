@@ -295,5 +295,6 @@ if __name__ == '__main__':
     imagenet_labels = 'imagenet_class_index.json'
     with open(imagenet_labels) as json_file:
         data_json = json.load(json_file)
-
+    if not os.path.exists('downloadable'):
+        os.mkdir('downloadable')
     app.run_server(host="0.0.0.0", port=port, debug=True)
